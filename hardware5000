@@ -1,0 +1,167 @@
+#!/usr/bin/python3
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QAction, QFileDialog
+from PyQt5.QtGui import QBrush, QColor
+
+import xml.etree.ElementTree as ET
+import sys
+
+class hardware5000(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.TreeWidget = QTreeWidget()
+        self.TreeWidget.setHeaderLabels(['Hardware', 'Hardware Comment', 'Connected Parameter', 'Parameter Comment'])
+        self.TreeWidget.setAlternatingRowColors(True)
+        self.setCentralWidget(self.TreeWidget)
+
+        menu = self.menuBar()
+        fileMenu = menu.addMenu('&File')
+        openButton = QAction("&Open", self)
+        openButton.triggered.connect(self.open)
+        fileMenu.addAction(openButton)
+
+        if len(sys.argv) == 2:
+            self.open(sys.argv[1])
+
+        self.show()
+
+    def open(self, f = None):
+        if not f:
+            path = QFileDialog.getOpenFileName(self)[0]
+        else:
+            path = f
+
+        if path:
+            tree = ET.parse(path)
+            self.root = tree.getroot()
+
+            modules = self.getModules()
+
+            self.draw(modules)
+
+    def getModules(self):
+        modules = []
+
+        for module in self.root.iter("Module"):
+
+            inputs = []
+            outputs = []
+
+            address = module.findall("./Ports/")[0].attrib["Address"]
+            hardware = module.attrib['ParentModule']
+            hcomment = module.attrib['Name']
+
+            if hcomment.find("Cube") != -1 or hcomment.find("K070") != -1:
+                hardware = hcomment
+                hcomment = ""
+            else:
+                hardware = hardware + ":" + address
+            
+            for search in ["InputTag", "InAliasTag", "OutputTag", "OutAliasTag"]:
+                for tags in module.iter(search):
+                    for comment in tags.iter("Comment"):
+                        if search[0] == "I":
+                            inputs.append({ "hardware" : hardware + ":" + search[0] + comment.attrib['Operand'],
+                                            "hcomment" : comment.text})
+                        else:
+                            outputs.append({ "hardware" : hardware + ":" + search[0] + comment.attrib['Operand'],
+                                             "hcomment" : comment.text})
+
+            inputs = [self.getParameterConnection(i) for i in inputs]
+            inputs = [self.getParameterComment(i) for i in inputs]
+
+            outputs = [self.getParameterConnection(o) for o in outputs]
+            outputs = [self.getParameterComment(o) for o in outputs]
+            
+            modules.append({'hardware'  : hardware,
+                            'hcomment'  : hcomment,  
+                            'inputs'    : inputs, 
+                            'outputs'   : outputs})
+
+        return modules
+
+    def getParameterConnection(self, comment):
+        for parameter in self.root.iter("ParameterConnection"):
+            e1 = parameter.attrib['EndPoint1']
+            e2 = parameter.attrib['EndPoint2']
+
+            if e1[0] == "\\":
+                hw = e2
+                tag= e1
+            else:
+                hw = e1
+                tag= e2
+
+            hw = hw.split(":")
+            hw[1] = hw[1].upper()
+            hw = ":".join(hw)
+
+            if comment['hardware'] == hw:
+                comment['parameter'] = tag
+                return comment
+
+        comment['parameter'] = ""
+        return comment
+
+    def getParameterComment(self, comment):
+        s = comment['parameter'].split('.')
+        if len(s) != 1:
+            programName = comment['parameter'].split('.')[0][1:]
+            tagName = comment['parameter'].split('.')[1]
+
+            for program in self.root.iter("Program"):
+                if program.attrib['Name'] == programName:
+                    for tag in program.iter("Tag"):
+                        if tag.attrib['Name'] == tagName:
+                            for e in tag:
+                                potential = tag.findall("Description")
+                                if len(potential):
+                                    comment['pcomment'] = potential[0].text
+                                    return comment
+
+        comment['pcomment'] = ''
+        return comment
+
+    def setBackground(self, item, color):
+        item.setBackground(0, color)
+        item.setBackground(1, color)
+        item.setBackground(2, color)
+        item.setBackground(3, color)
+
+    def draw(self, modules):
+        for module in modules:
+            if len(module['inputs']) or len(module['outputs']):
+                item = QTreeWidgetItem(self.TreeWidget)
+                self.setBackground(item, QBrush(QColor(157,159,85)))
+                item.setText(0, module['hardware'])
+                item.setText(1, module['hcomment'])
+                inputs = QTreeWidgetItem(item)
+                self.setBackground(inputs, QBrush(QColor(85,157,159)))
+                inputs.setText(0, "Inputs")
+                for i in module['inputs']:
+                    childitem = QTreeWidgetItem(inputs)
+                    self.setBackground(childitem, QBrush(QColor(85,120,159)))
+                    childitem.setText(0, i['hardware'])
+                    childitem.setText(1, i['hcomment'])
+                    childitem.setText(2, i['parameter'])
+                    childitem.setText(3, i['pcomment'])
+
+                outputs = QTreeWidgetItem(item)
+                outputs.setText(0, "Outputs")
+                self.setBackground(outputs, QBrush(QColor(85,157,159)))
+                for o in module['outputs']:
+                    childitem = QTreeWidgetItem(outputs)
+                    self.setBackground(childitem, QBrush(QColor(85,120,159)))
+                    childitem.setText(0, o['hardware'])
+                    childitem.setText(1, o['hcomment'])
+                    childitem.setText(2, o['parameter'])
+                    childitem.setText(3, o['pcomment'])
+
+        for i in range(4):
+            self.TreeWidget.resizeColumnToContents(i)
+
+app = QApplication(sys.argv)
+masterView = hardware5000()
+sys.exit(app.exec_())

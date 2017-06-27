@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, QAbstractItemModel, QModelIndex
 from PyQt5.QtGui import QBrush, QColor
-import xml.etree.ElementTree as ET
+import lxml.etree as ET
 
 from lib.TreeItem import TreeItem
 
@@ -17,10 +17,8 @@ class TreeModel(QAbstractItemModel):
     def save(self,path=None):
         if path is None:
             path = self.path
-        try:
-            self.tree.write(path)
-        except:
-            print("save error")
+
+        self.tree.write(path, encoding='utf-8', standalone=True)
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -168,7 +166,8 @@ class TreeModel(QAbstractItemModel):
                             return element
 
     def setupModel(self, path):
-        self.tree = ET.parse(path)
+        parser = ET.XMLParser(strip_cdata=False)
+        self.tree = ET.parse(path, parser=parser)
         self.root = self.tree.getroot()
 
         self.base = TreeItem([path.split('/')[-1]], self.rootItem)

@@ -130,6 +130,42 @@ class hardware5000(QMainWindow):
         item.setBackground(2, color)
         item.setBackground(3, color)
 
+    def tree(self, parent, puts):
+        for put in puts:
+            if len(put['hardware'].split(".")) == 2:
+                childitem = QTreeWidgetItem(parent)
+                self.setBackground(childitem, QBrush(QColor(85,120,159)))
+                childitem.setText(0, put['hardware'])
+                childitem.setText(1, put['hcomment'])
+                childitem.setText(2, put['parameter'])
+                childitem.setText(3, put['pcomment'])
+
+        for put in puts:
+            pModule = put['hardware'].split(".")
+            if len(pModule) == 3:
+                pModule = ".".join(pModule[0:2])
+
+                root = self.TreeWidget.invisibleRootItem()
+                hwCount = root.childCount()
+                for i in range(hwCount):
+
+                    hardware = root.child(i)
+                    childCount = hardware.childCount()
+                    for j in range(childCount):
+
+                        p = hardware.child(j)
+                        moduleCount = p.childCount()
+                        for k in range(moduleCount):
+
+                            module = p.child(k)
+                            if module.data(0,0) ==  pModule:
+                                childitem = QTreeWidgetItem(module)
+                                self.setBackground(childitem, QBrush(QColor(120,159,85)))
+                                childitem.setText(0, put['hardware'])
+                                childitem.setText(1, put['hcomment'])
+                                childitem.setText(2, put['parameter'])
+                                childitem.setText(3, put['pcomment'])
+
     def draw(self, modules):
         for module in modules:
             if len(module['inputs']) or len(module['outputs']):
@@ -137,27 +173,16 @@ class hardware5000(QMainWindow):
                 self.setBackground(item, QBrush(QColor(157,159,85)))
                 item.setText(0, module['hardware'])
                 item.setText(1, module['hcomment'])
+
                 inputs = QTreeWidgetItem(item)
                 self.setBackground(inputs, QBrush(QColor(85,157,159)))
                 inputs.setText(0, "Inputs")
-                for i in module['inputs']:
-                    childitem = QTreeWidgetItem(inputs)
-                    self.setBackground(childitem, QBrush(QColor(85,120,159)))
-                    childitem.setText(0, i['hardware'])
-                    childitem.setText(1, i['hcomment'])
-                    childitem.setText(2, i['parameter'])
-                    childitem.setText(3, i['pcomment'])
+                self.tree(inputs, module['inputs'])
 
                 outputs = QTreeWidgetItem(item)
-                outputs.setText(0, "Outputs")
                 self.setBackground(outputs, QBrush(QColor(85,157,159)))
-                for o in module['outputs']:
-                    childitem = QTreeWidgetItem(outputs)
-                    self.setBackground(childitem, QBrush(QColor(85,120,159)))
-                    childitem.setText(0, o['hardware'])
-                    childitem.setText(1, o['hcomment'])
-                    childitem.setText(2, o['parameter'])
-                    childitem.setText(3, o['pcomment'])
+                outputs.setText(0, "Outputs")
+                self.tree(outputs, module['outputs'])
 
         for i in range(4):
             self.TreeWidget.resizeColumnToContents(i)

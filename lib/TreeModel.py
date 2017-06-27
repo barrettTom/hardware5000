@@ -113,17 +113,18 @@ class TreeModel(QAbstractItemModel):
 
                 dataPath = item.data(0).split(":")
                 element = self.findHW(dataPath)
-                element.text = value
+                value = value.replace("\n", "")
+                element.text = ET.CDATA(value.replace("\n",""))
                 item.setData(value, index.column())
 
             elif index.column() == 3:
                 dataPath = item.data(2).split(".")
                 element = self.findPA(dataPath)
-                element.text = value
+                value = value.replace("\n", "")
+                element.text = ET.CDATA(value)
                 item.setData(value, index.column())
 
             return True
-
         except:
             print("Editing Error.")
             return False

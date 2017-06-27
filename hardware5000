@@ -13,12 +13,21 @@ class hardware5000(QMainWindow):
         self.view = QTreeView(self) 
         self.setCentralWidget(self.view)
         self.view.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.model = False
 
         menu = self.menuBar()
         fileMenu = menu.addMenu('&File')
         openButton = QAction("&Open", self)
         openButton.triggered.connect(self.open)
         fileMenu.addAction(openButton)
+
+        saveButton = QAction("&Save", self)
+        saveButton.triggered.connect(self.save)
+        fileMenu.addAction(saveButton)
+
+        saveAsButton = QAction("&Save As", self)
+        saveAsButton.triggered.connect(self.saveAs)
+        fileMenu.addAction(saveAsButton)
 
         if len(sys.argv) == 2:
             self.open(sys.argv[1])
@@ -34,6 +43,15 @@ class hardware5000(QMainWindow):
         if path:
             self.model = TreeModel(path)
             self.view.setModel(self.model)
+
+    def save(self):
+        if self.model:
+            self.model.save()
+
+    def saveAs(self):
+        path = QFileDialog.getSaveFileName(self)[0]
+        if path != "":
+            self.model.save(path)
 
 app = QApplication(sys.argv)
 masterView = hardware5000()

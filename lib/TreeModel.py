@@ -1,6 +1,5 @@
 from PyQt5.QtCore import Qt, QAbstractItemModel, QModelIndex
 from PyQt5.QtGui import QBrush, QColor
-from ast import literal_eval
 import xml.etree.ElementTree as ET
 
 from lib.TreeItem import TreeItem
@@ -9,17 +8,17 @@ class TreeModel(QAbstractItemModel):
     def __init__(self, path, parent=None):
         super(TreeModel, self).__init__(parent)
 
-        self.rootItem = TreeItem(("Hardware", "Hardware Comment", "Connected Parameter", "Parameter Comment"))
+        self.rootItem = TreeItem(["Hardware", "Hardware Comment", "Connected Parameter", "Parameter Comment"])
+
+        self.path = path
 
         self.setupModel(path)
 
     def save(self,path=None):
         if path is None:
             path = self.path
-
-        self.resetChanged()
         try:
-            self.XMLTree.write(path)
+            self.tree.write(path)
         except:
             print("save error")
 
@@ -110,35 +109,63 @@ class TreeModel(QAbstractItemModel):
 
     def setData(self, index, value, role):
         try:
-            XMLRoot = self.XMLTree.getroot()
             item = index.internalPointer()
 
-            element = find(XMLRoot, item.data(0), item.data(1), item.data(2))
+            if index.column() == 1:
 
-            if index.column() == 0:
-                element.tag = value
-            elif index.column() == 1:
+                dataPath = item.data(0).split(":")
+                element = self.findHW(dataPath)
                 element.text = value
-            elif index.column() == 2:
-                for key in list(element.attrib):
-                    del element.attrib[key]
-                dValue = literal_eval(value)
-                for key in dValue:
-                    element.set(key,dValue[key])
+                item.setData(value, index.column())
 
-            item.setData(value,index.column())
+            elif index.column() == 3:
+                dataPath = item.data(2).split(".")
+                element = self.findPA(dataPath)
+                element.text = value
+                item.setData(value, index.column())
+
             return True
 
         except:
+            print("Editing Error.")
             return False
 
-    def find(self, root, tag, text, attrib):
-        for element in root.iter(tag):
-            tryText = str(element.text)
-            if tryText == "None":
-                tryText = ""
-            if tryText == text and str(element.attrib) == atrrib:
-                return element
+    def findHW(self, dataPath):
+        m = dataPath[0]
+        e = dataPath[-1][1:]
+
+        for module in self.root.iter("Module"):
+            if module.attrib['Name'] == m:
+                for comment in module.iter("Comment"):
+                    if comment.attrib['Operand'] == e:
+                        return comment
+
+        m = ":".join(dataPath[0:2])
+
+        for module in self.root.iter("Module"):
+            address = module.findall("./Ports/")[0].attrib["Address"]
+            hardware = module.attrib['ParentModule']
+            hardware = hardware + ":" + address
+            if hardware == m:
+                for comment in module.iter("Comment"):
+                    if comment.attrib['Operand'] == e:
+                        return comment
+
+    def findPA(self, dataPath):
+        p = dataPath[0][1:]
+        t = dataPath[1]
+
+        for program in self.root.iter("Program"):
+            if program.attrib['Name'] == p:
+                for tag in program.iter("Tag"):
+                    if tag.attrib['Name'] == t:
+                        potential = tag.findall("Description")
+                        if len(potential):
+                            return potential[0]
+                        else:
+                            element =ET.Element("Description")
+                            tag.insert(0, element)
+                            return element
 
     def setupModel(self, path):
         self.tree = ET.parse(path)
@@ -202,11 +229,10 @@ class TreeModel(QAbstractItemModel):
                 if program.attrib['Name'] == programName:
                     for tag in program.iter("Tag"):
                         if tag.attrib['Name'] == tagName:
-                            for e in tag:
-                                potential = tag.findall("Description")
-                                if len(potential):
-                                    comment['pcomment'] = potential[0].text
-                                    return comment
+                            potential = tag.findall("Description")
+                            if len(potential):
+                                comment['pcomment'] = potential[0].text
+                                return comment
 
         comment['pcomment'] = ''
         return comment

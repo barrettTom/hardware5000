@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeView, QTreeWidgetItem, QAction, QFileDialog
-from PyQt5.QtGui import QBrush, QColor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QAction, QTreeView, QHeaderView, QFileDialog
 
 from lib.TreeModel import TreeModel
-import xml.etree.ElementTree as ET
 import sys
 
 class hardware5000(QMainWindow):
@@ -14,6 +12,7 @@ class hardware5000(QMainWindow):
 
         self.view = QTreeView(self) 
         self.setCentralWidget(self.view)
+        self.view.header().setSectionResizeMode(QHeaderView.ResizeToContents)
 
         menu = self.menuBar()
         fileMenu = menu.addMenu('&File')

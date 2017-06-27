@@ -1,10 +1,13 @@
 class TreeItem(object):
     def __init__(self, data, parent=None, depth=0):
         self.parentItem = parent
-        self.itemData = data
         self.childItems = []
         self.depth = depth
-        self.changed = False
+
+        self.itemData = ["","","",""]
+        for i, d in enumerate(data):
+            self.itemData[i] = d
+        self.itemData = tuple(self.itemData)
 
     def appendChild(self, item):
         self.childItems.append(item)
@@ -27,12 +30,8 @@ class TreeItem(object):
     def setData(self, data, column):
         tmp = list(self.itemData)
         if tmp[column] != data:
-            self.changed = True
             tmp[column] = data
             self.itemData = tuple(tmp)
-
-    def resetChanged(self):
-        self.changed = False
 
     def parent(self):
         return self.parentItem

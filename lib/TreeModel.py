@@ -144,7 +144,7 @@ class TreeModel(QAbstractItemModel):
         self.tree = ET.parse(path)
         self.root = self.tree.getroot()
 
-        self.base = TreeItem((path.split('/')[-1],"","",""), self.rootItem)
+        self.base = TreeItem([path.split('/')[-1]], self.rootItem)
         self.rootItem.appendChild(self.base)
 
         modules = self.getModules()
@@ -237,21 +237,21 @@ class TreeModel(QAbstractItemModel):
     def draw(self, modules):
         for module in modules:
             if len(module['inputs']) or len(module['outputs']):
-                item = TreeItem((module['hardware'], module['hcomment'],"",""), self.base, 1)
+                item = TreeItem([module['hardware'], module['hcomment']], self.base, 1)
                 self.base.appendChild(item)
 
-                inputs = TreeItem(("Inputs","","",""), item, 2)
+                inputs = TreeItem(["Inputs"], item, 2)
                 item.appendChild(inputs)
                 self.treeHardware(inputs, module['inputs'])
 
-                outputs = TreeItem(("Outputs","","",""), item, 2)
+                outputs = TreeItem(["Outputs"], item, 2)
                 item.appendChild(outputs)
                 self.treeHardware(outputs, module['outputs'])
 
     def treeHardware(self, parent, puts):
         for put in puts:
             if len(put['hardware'].split(".")) == 2:
-                childItem = TreeItem((put['hardware'], put['hcomment'], put['parameter'], put['pcomment']), parent, 3)
+                childItem = TreeItem([put['hardware'], put['hcomment'], put['parameter'], put['pcomment']], parent, 3)
                 parent.appendChild(childItem)
 
         for put in puts:
@@ -273,6 +273,6 @@ class TreeModel(QAbstractItemModel):
 
                             module = p.child(k)
                             if module.data(0) ==  pModule:
-                                childItem = TreeItem((put['hardware'], put['hcomment'], put['parameter'], put['pcomment']), module, 4)
+                                childItem = TreeItem([put['hardware'], put['hcomment'], put['parameter'], put['pcomment']], module, 4)
                                 module.appendChild(childItem)
 

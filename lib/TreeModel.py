@@ -98,7 +98,7 @@ class TreeModel(QAbstractItemModel):
             elif item.depth == 2:
                 return QBrush(QColor(85,120,159))
             elif item.depth == 3:
-                return QBrush(QColor(159,85,120))
+                return QBrush(QColor(87,85,159))
             elif item.depth == 4:
                 return QBrush(QColor(120,159,85))
 
@@ -118,15 +118,17 @@ class TreeModel(QAbstractItemModel):
 
                 dataPath = item.data(0).split(":")
                 element = self.findHW(dataPath)
-                value = value.replace("\n", "")
+
                 element.text = ET.CDATA(value)
+
                 item.setData(value, index.column())
 
             elif index.column() == 3:
                 dataPath = item.data(2).split(".")
                 element = self.findPA(dataPath)
-                value = value.replace("\n", "")
+
                 element.text = ET.CDATA(value)
+
                 item.setData(value, index.column())
 
             return True
@@ -173,8 +175,8 @@ class TreeModel(QAbstractItemModel):
                             return element
 
     def setupModel(self, path):
-        parser = ET.XMLParser(strip_cdata=False)
-        self.tree = ET.parse(path, parser=parser)
+        self.parser = ET.XMLParser(strip_cdata=False, resolve_entities=False)
+        self.tree = ET.parse(path, parser=self.parser)
         self.root = self.tree.getroot()
 
         self.base = TreeItem([path.split('/')[-1]], self.rootItem)
@@ -204,6 +206,7 @@ class TreeModel(QAbstractItemModel):
             for search in ["InputTag", "InAliasTag", "OutputTag", "OutAliasTag"]:
                 for tags in module.iter(search):
                     for comment in tags.iter("Comment"):
+                        comment.text = ET.CDATA(comment.text.replace("\n"," "))
                         if search[0] == "I":
                             inputs.append({ "hardware" : hardware + ":" + search[0] + comment.attrib['Operand'],
                                             "hcomment" : comment.text})
@@ -237,6 +240,7 @@ class TreeModel(QAbstractItemModel):
                         if tag.attrib['Name'] == tagName:
                             potential = tag.findall("Description")
                             if len(potential):
+                                potential[0].text = ET.CDATA(potential[0].text.replace("\n", " "))
                                 comment['pcomment'] = potential[0].text
                                 return comment
 

@@ -17,6 +17,8 @@ class hardware5000(QMainWindow):
 
         menu = self.menuBar()
         fileMenu = menu.addMenu('&File')
+        viewMenu = menu.addMenu('&View')
+
         openButton = QAction("&Open", self)
         openButton.triggered.connect(self.open)
         fileMenu.addAction(openButton)
@@ -28,6 +30,10 @@ class hardware5000(QMainWindow):
         saveAsButton = QAction("&Save As", self)
         saveAsButton.triggered.connect(self.saveAs)
         fileMenu.addAction(saveAsButton)
+
+        highlightButton = QAction("&Highlight Inconsistencies", self)
+        highlightButton.triggered.connect(self.highlight)
+        viewMenu.addAction(highlightButton)
 
         if len(sys.argv) == 2:
             self.open(sys.argv[1])
@@ -52,6 +58,10 @@ class hardware5000(QMainWindow):
         path = QFileDialog.getSaveFileName(self)[0]
         if path != "":
             self.model.save(path)
+
+    def highlight(self):
+        if self.model:
+            self.model.highlight()
 
 app = QApplication(sys.argv)
 masterView = hardware5000()

@@ -12,6 +12,8 @@ class TreeModel(QAbstractItemModel):
 
         self.path = path
 
+        self.isHighlighted = False
+
         self.setupModel(path)
 
     def save(self,path=None):
@@ -86,6 +88,9 @@ class TreeModel(QAbstractItemModel):
         item = index.internalPointer()
 
         if role == Qt.BackgroundRole:
+            if self.isHighlighted:
+                if item.data(1) != item.data(3):
+                    return QBrush(QColor(159,87,85))
             if item.depth == 0:
                 return QBrush(QColor(157,159,85))
             elif item.depth == 1:
@@ -260,6 +265,9 @@ class TreeModel(QAbstractItemModel):
 
         comment['parameter'] = ""
         return comment
+
+    def highlight(self):
+        self.isHighlighted = not self.isHighlighted
 
     def draw(self, modules):
         for module in modules:

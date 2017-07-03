@@ -174,6 +174,16 @@ class TreeModel(QAbstractItemModel):
                             tag.insert(0, element)
                             return element
 
+    def fixComments(self):
+        for rung in self.root.iter("Rung"):
+            gottaFix = rung.findall("Comment")
+            if gottaFix:
+                gottaFix = gottaFix[0]
+                text = gottaFix.text
+                text = text.strip()
+                text = text.replace("\n", " \n")
+                gottaFix.text = ET.CDATA(text)
+
     def setupModel(self, path):
         self.parser = ET.XMLParser(strip_cdata=False, resolve_entities=False)
         self.tree = ET.parse(path, parser=self.parser)
@@ -183,6 +193,7 @@ class TreeModel(QAbstractItemModel):
         self.rootItem.appendChild(self.base)
 
         modules = self.getModules()
+        self.fixComments()
         self.draw(modules)
 
     def getModules(self):

@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QAction, QTreeView, QHeaderView, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTreeView, QHeaderView, QFileDialog
+import sys
 
 from lib.TreeModel import TreeModel
-import sys
+from lib.menubar import menubar
 
 class hardware5000(QMainWindow):
     def __init__(self):
@@ -15,25 +15,7 @@ class hardware5000(QMainWindow):
         self.view.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.model = False
 
-        menu = self.menuBar()
-        fileMenu = menu.addMenu('&File')
-        viewMenu = menu.addMenu('&View')
-
-        openButton = QAction("&Open", self)
-        openButton.triggered.connect(self.open)
-        fileMenu.addAction(openButton)
-
-        saveButton = QAction("&Save", self)
-        saveButton.triggered.connect(self.save)
-        fileMenu.addAction(saveButton)
-
-        saveAsButton = QAction("&Save As", self)
-        saveAsButton.triggered.connect(self.saveAs)
-        fileMenu.addAction(saveAsButton)
-
-        highlightButton = QAction("&Highlight Inconsistencies", self)
-        highlightButton.triggered.connect(self.highlight)
-        viewMenu.addAction(highlightButton)
+        menubar(self)
 
         if len(sys.argv) == 2:
             self.open(sys.argv[1])

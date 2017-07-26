@@ -2,6 +2,9 @@ from PyQt5.QtCore import Qt, QAbstractItemModel, QModelIndex
 from PyQt5.QtGui import QBrush, QColor
 import lxml.etree as ET
 
+import codecs
+import os
+
 from lib.TreeItem import TreeItem
 
 class TreeModel(QAbstractItemModel):
@@ -20,7 +23,15 @@ class TreeModel(QAbstractItemModel):
         if path is None:
             path = self.path
 
-        self.tree.write(path, encoding='utf-8', standalone=True)
+        self.tree.write(path+'utf-8', encoding='utf-8', standalone=True)
+
+        with codecs.open(path+'utf-8', 'r', 'utf-8') as sourceFile:
+            with codecs.open(path, 'w', 'utf-8-sig') as targetFile:
+                contents = sourceFile.read()
+                contents = contents.replace("\n", "\r\n")
+                targetFile.write(contents)
+
+        os.remove(path+'utf-8')
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -150,7 +161,7 @@ class TreeModel(QAbstractItemModel):
         m = ":".join(dataPath[0:2])
 
         for module in self.root.iter("Module"):
-            address = module.findall("./Ports/")[0].attrib["Address"]
+            address = module.find("./Ports/").attrib["Address"]
             hardware = module.attrib['ParentModule']
             hardware = hardware + ":" + address
             if hardware == m:
@@ -166,23 +177,13 @@ class TreeModel(QAbstractItemModel):
             if program.attrib['Name'] == p:
                 for tag in program.iter("Tag"):
                     if tag.attrib['Name'] == t:
-                        potential = tag.findall("Description")
-                        if len(potential):
-                            return potential[0]
+                        potential = tag.find("Description")
+                        if potential is not None:
+                            return potential
                         else:
-                            element =ET.Element("Description")
+                            element = ET.Element("Description")
                             tag.insert(0, element)
                             return element
-
-    def fixComments(self):
-        for rung in self.root.iter("Rung"):
-            gottaFix = rung.findall("Comment")
-            if gottaFix:
-                gottaFix = gottaFix[0]
-                text = gottaFix.text
-                text = text.strip()
-                text = text.replace("\n", " \n")
-                gottaFix.text = ET.CDATA(text)
 
     def setupModel(self, path):
         self.parser = ET.XMLParser(strip_cdata=False, resolve_entities=False)
@@ -193,7 +194,6 @@ class TreeModel(QAbstractItemModel):
         self.rootItem.appendChild(self.base)
 
         modules = self.getModules()
-        self.fixComments()
         self.draw(modules)
 
     def getModules(self):
@@ -204,11 +204,11 @@ class TreeModel(QAbstractItemModel):
             inputs = []
             outputs = []
 
-            address = module.findall("./Ports/")[0].attrib["Address"]
+            address = module.find("./Ports/").attrib["Address"]
             hardware = module.attrib['ParentModule']
             hcomment = module.attrib['Name']
 
-            if hcomment.find("Cube") != -1 or hcomment.find("K070") != -1:
+            if "Cube" in hcomment or "K070" in hcomment:
                 hardware = hcomment
                 hcomment = ""
             else:
@@ -217,7 +217,6 @@ class TreeModel(QAbstractItemModel):
             for search in ["InputTag", "InAliasTag", "OutputTag", "OutAliasTag"]:
                 for tags in module.iter(search):
                     for comment in tags.iter("Comment"):
-                        comment.text = ET.CDATA(comment.text.replace("\n"," "))
                         if search[0] == "I":
                             inputs.append({ "hardware" : hardware + ":" + search[0] + comment.attrib['Operand'],
                                             "hcomment" : comment.text})
@@ -249,10 +248,9 @@ class TreeModel(QAbstractItemModel):
                 if program.attrib['Name'] == programName:
                     for tag in program.iter("Tag"):
                         if tag.attrib['Name'] == tagName:
-                            potential = tag.findall("Description")
-                            if len(potential):
-                                potential[0].text = ET.CDATA(potential[0].text.replace("\n", " "))
-                                comment['pcomment'] = potential[0].text
+                            potential = tag.find("Description")
+                            if potential is not None:
+                                comment['pcomment'] = potential.text
                                 return comment
 
         comment['pcomment'] = ''
